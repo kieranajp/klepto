@@ -1,12 +1,10 @@
-package anonymiser
+package mysql
 
 import (
 	"database/sql"
 	"fmt"
 	"reflect"
 	"strings"
-
-	"github.com/hellofresh/klepto/database/seeder"
 
 	"github.com/hellofresh/klepto/database"
 	"github.com/hellofresh/klepto/utils"
@@ -16,14 +14,14 @@ import (
 // literalPrefix defines the constant we use to prefix literals
 const literalPrefix = "literal:"
 
+// DataStore enables us to implement database.sql.DB connection however we want.
+type DataStore interface {
+	all(table string, conn *sql.DB) (*sql.Rows, error)
+}
+
 // MySQLAnonymiser anonymises MySQL tables and
 type MySQLAnonymiser struct {
 	conn *sql.DB
-}
-
-// MySQLSeeder describes mysql seeds
-type MySQLSeeder struct {
-	seeder.Seeder
 }
 
 type scanner struct {
@@ -35,13 +33,19 @@ func NewMySQLAnonymiser(conn *sql.DB) *MySQLAnonymiser {
 	return &MySQLAnonymiser{conn: conn}
 }
 
-// DumpTable grabs the data from the provided database table and runs Faker against
-// columns specified in config file.
-func (a *MySQLAnonymiser) DumpTable(table string, rowChan chan<- []*database.Cell, endChan chan<- bool) error {
-	rows, err := a.conn.Query(fmt.Sprintf("SELECT * FROM `%s`", table))
+// All returns a list of Rows.
+func all(table string, conn *sql.DB) (*sql.Rows, error) {
+	rows, err := conn.Query(fmt.Sprintf("SELECT * FROM `%s`", table))
 	if err != nil {
-		return err
+		return &sql.Rows{}, err
 	}
+	return rows, err
+}
+
+// AnonymiseRows grabs the data from the provided database table and runs Faker against
+// columns specified in config file.
+func (conn *MySQLAnonymiser) AnonymiseRows(table string, rowChan chan<- []*database.Cell, endChan chan<- bool) error {
+	rows, err := all(table, conn.conn)
 	defer rows.Close()
 	columns, err := rows.Columns()
 	if err != nil {
@@ -71,7 +75,7 @@ func (a *MySQLAnonymiser) DumpTable(table string, rowChan chan<- []*database.Cel
 					return err
 				}
 				seed := reflect.ValueOf(nFields[idx]).Elem()
-				cell, err := seeder.KeepSeedValueUnchanged(column, seed, reflect.TypeOf(seed).Kind())
+				cell, err := KeepSeedValueUnchanged(column, seed, reflect.TypeOf(seed).Kind())
 				if err != nil {
 					return err
 				}
