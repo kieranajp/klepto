@@ -21,8 +21,8 @@ import (
 type (
 	// StealOptions represents the command options
 	StealOptions struct {
-		from        string
-		to          string
+		From        string
+		To          string
 		concurrency int
 		readOpts    connOpts
 		writeOpts   connOpts
@@ -47,8 +47,8 @@ func NewStealCmd() *cobra.Command {
 		},
 	}
 
-	cmd.PersistentFlags().StringVarP(&opts.from, "from", "f", "root:root@tcp(localhost:3306)/klepto", "Database dsn to steal from")
-	cmd.PersistentFlags().StringVarP(&opts.to, "to", "t", "os://stdout/", "Database to output to (default writes to stdOut)")
+	cmd.PersistentFlags().StringVarP(&opts.From, "from", "f", "root:root@tcp(localhost:3306)/klepto", "Database dsn to steal from")
+	cmd.PersistentFlags().StringVarP(&opts.To, "to", "t", "os://stdout/", "Database to output to (default writes to stdOut)")
 	cmd.PersistentFlags().IntVar(&opts.concurrency, "concurrency", runtime.NumCPU(), "Sets the amount of dumps to be performed concurrently")
 	cmd.PersistentFlags().StringVar(&opts.readOpts.timeout, "read-timeout", "5m", "Sets the timeout for read operations")
 	cmd.PersistentFlags().StringVar(&opts.writeOpts.timeout, "write-timeout", "30s", "Sets the timeout for write operations")
@@ -76,7 +76,7 @@ func RunSteal(opts *StealOptions) (err error) {
 	failOnError(err, "Failed to parse the timeout duration")
 
 	source, err := reader.Connect(reader.ConnOpts{
-		DSN:             opts.from,
+		DSN:             opts.From,
 		Timeout:         readTimeout,
 		MaxConnLifetime: readMaxConnLifetime,
 		MaxConns:        opts.readOpts.maxConns,
@@ -87,7 +87,7 @@ func RunSteal(opts *StealOptions) (err error) {
 
 	source = anonymiser.NewAnonymiser(source, globalConfig.Tables)
 	target, err := dumper.NewDumper(dumper.ConnOpts{
-		DSN:             opts.to,
+		DSN:             opts.To,
 		Timeout:         writeTimeout,
 		MaxConnLifetime: writeMaxConnLifetime,
 		MaxConns:        opts.writeOpts.maxConns,
