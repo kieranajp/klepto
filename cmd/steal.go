@@ -64,16 +64,24 @@ func NewStealCmd() *cobra.Command {
 // RunSteal is the handler for the rootCmd.
 func RunSteal(opts *StealOptions) (err error) {
 	readTimeout, err := time.ParseDuration(opts.readOpts.timeout)
-	failOnError(err, "Failed to parse read timeout duration")
+	if err != nil {
+		readTimeout, _ = time.ParseDuration("5m")
+	}
 
 	writeTimeout, err := time.ParseDuration(opts.readOpts.timeout)
-	failOnError(err, "Failed to parse write timeout duration")
+	if err != nil {
+		writeTimeout, _ = time.ParseDuration("30s")
+	}
 
 	readMaxConnLifetime, err := time.ParseDuration(opts.readOpts.maxConnLifetime)
-	failOnError(err, "Failed to parse the timeout duration")
+	if err != nil {
+		readMaxConnLifetime, _ = time.ParseDuration("0")
+	}
 
 	writeMaxConnLifetime, err := time.ParseDuration(opts.writeOpts.maxConnLifetime)
-	failOnError(err, "Failed to parse the timeout duration")
+	if err != nil {
+		writeMaxConnLifetime, _ = time.ParseDuration("0")
+	}
 
 	source, err := reader.Connect(reader.ConnOpts{
 		DSN:             opts.From,
